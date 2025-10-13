@@ -36,3 +36,5 @@ if __name__ == "__main__":
     url = "https://www.youtube.com/@mundogv/streams"
     print(f"📺 Listando vídeos do canal: {url}")
     listar_todos_videos(url)
+
+    
