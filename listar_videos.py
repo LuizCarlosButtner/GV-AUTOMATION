@@ -9,7 +9,20 @@ def obter_data_formatada(timestamp):
     except:
         return "Data indisponível"
 
-def listar_todos_videos(url_canal, palavra_chave):
+def formatar_moeda_br(valor):
+    """Formata número float para moeda BR (ex: 1500 -> '1.500,00')."""
+    try:
+        # garante float
+        v = float(valor)
+    except Exception:
+        return "0,00"
+    # formata com separador de milhares em inglês e ponto decimal
+    s = f"{v:,.2f}"
+    # s exemplo: '1,500.00' -> queremos '1.500,00'
+    s = s.replace(',', 'X').replace('.', ',').replace('X', '.')
+    return s
+
+def listar_todos_videos(url_canal, palavra_chave, mes=None, ano=None, valorPorMinuto=0):
     # Configuração inicial para listar vídeos
     ydl_opts = {
         'quiet': True,
@@ -49,19 +62,37 @@ def listar_todos_videos(url_canal, palavra_chave):
                         # Obtém informações detalhadas do vídeo
                         video_url = f"https://www.youtube.com/watch?v={video['id']}"
                         info = ydl_detailed.extract_info(video_url, download=False)
-                        
+
+                        # Verifica filtro de mês/ano usando upload_date (YYYYMMDD)
+                        upload_date = info.get('upload_date')
+                        if mes or ano:
+                            if not upload_date:
+                                # sem data, não atende ao filtro
+                                continue
+                            try:
+                                y = int(upload_date[0:4])
+                                m = int(upload_date[4:6])
+                            except:
+                                continue
+                            if mes and m != mes:
+                                continue
+                            if ano and y != ano:
+                                continue
+
                         # Extrai e formata as informações
                         titulo = info.get('title', 'Sem título')
-                        data = obter_data_formatada(info.get('upload_date', ''))
-                        duracao = info.get('duration', 'Duração desconhecida')
-                        duracao = duracao/60  
-                        
+                        data = obter_data_formatada(upload_date if upload_date else '')
+                        duracao = info.get('duration', 0)
+                        duracao_min = duracao / 60 if isinstance(duracao, (int, float)) else 0
+                        custo = duracao_min * valorPorMinuto if valorPorMinuto else 0
+
                         print(f"{i:3d}. ")
                         print(f"    🎬 Título: {titulo}")
                         print(f"    📅 Data: {data}")
-                        print(f"    ⏱ Duração: {duracao:.2f} minutos")
+                        print(f"    ⏱ Duração: {duracao_min:.2f} minutos")
                         print(f"    🔗 Link: {video_url}")
-                        print(f"    💰 Custo estimado: R$ {duracao * valorPorMinuto:.2f}")
+                        if valorPorMinuto:
+                            print(f"    💰 Custo estimado: R$ {formatar_moeda_br(custo)}")
 
                     except Exception as e:
                         print(f"{i:3d}. [Erro ao obter detalhes] {video.get('title', 'Sem título')}")
@@ -77,11 +108,12 @@ if __name__ == "__main__":
     # Canal padrão sempre @mundogv
 
     mes = 10  # Exemplo: filtrar por outubro
-    ano = 2023  # Exemplo: filtrar por 2023
+    ano = 2025  # Exemplo: filtrar por 2023
     palavra_chave = "MUNDO GV SUPERBET"  # Exemplo: filtrar por palavra-chave no título
-    valorPorHora = 100  # Exemplo: valor por hora
+    valorPorHora = 750  # Exemplo: valor por hora
     valorPorMinuto = valorPorHora/60  # Divide o valor por minuto para obter o valor por hora
     url = "https://www.youtube.com/@mundogv/streams"
     print(f"📺 Listando vídeos do canal: {url}")
-    listar_todos_videos(url, palavra_chave)
+    # Passa os filtros: palavra_chave, mês, ano e valor por minuto
+    listar_todos_videos(url, palavra_chave, mes, ano, valorPorMinuto)
 
