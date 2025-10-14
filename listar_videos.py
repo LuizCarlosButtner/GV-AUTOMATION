@@ -9,7 +9,7 @@ def obter_data_formatada(timestamp):
     except:
         return "Data indisponível"
 
-def listar_todos_videos(url_canal):
+def listar_todos_videos(url_canal, palavra_chave):
     # Configuração inicial para listar vídeos
     ydl_opts = {
         'quiet': True,
@@ -28,7 +28,7 @@ def listar_todos_videos(url_canal):
             # Filtra os vídeos que queremos
             videos_filtrados = [
                 video for video in playlist.get('entries', [])
-                if video and 'MUNDO GV SUPERBET' in video.get('title', '')
+                if video and palavra_chave in video.get('title', '')
             ]
             
             print(f"📺 Canal: {playlist.get('uploader', 'Canal desconhecido')}")
@@ -53,9 +53,16 @@ def listar_todos_videos(url_canal):
                         # Extrai e formata as informações
                         titulo = info.get('title', 'Sem título')
                         data = obter_data_formatada(info.get('upload_date', ''))
-                        duracao = info.get('duration_string', 'Duração desconhecida')
+                        duracao = info.get('duration', 'Duração desconhecida')
+                        duracao = duracao/60  
                         
-                        print(f"{i:3d}. [{data}] {titulo} ({duracao})")
+                        print(f"{i:3d}. ")
+                        print(f"    🎬 Título: {titulo}")
+                        print(f"    📅 Data: {data}")
+                        print(f"    ⏱ Duração: {duracao:.2f} minutos")
+                        print(f"    🔗 Link: {video_url}")
+                        print(f"    💰 Custo estimado: R$ {duracao * valorPorMinuto:.2f}")
+
                     except Exception as e:
                         print(f"{i:3d}. [Erro ao obter detalhes] {video.get('title', 'Sem título')}")
             
@@ -68,7 +75,13 @@ def listar_todos_videos(url_canal):
 
 if __name__ == "__main__":
     # Canal padrão sempre @mundogv
+
+    mes = 10  # Exemplo: filtrar por outubro
+    ano = 2023  # Exemplo: filtrar por 2023
+    palavra_chave = "MUNDO GV SUPERBET"  # Exemplo: filtrar por palavra-chave no título
+    valorPorHora = 100  # Exemplo: valor por hora
+    valorPorMinuto = valorPorHora/60  # Divide o valor por minuto para obter o valor por hora
     url = "https://www.youtube.com/@mundogv/streams"
     print(f"📺 Listando vídeos do canal: {url}")
-    listar_todos_videos(url)
+    listar_todos_videos(url, palavra_chave)
 
