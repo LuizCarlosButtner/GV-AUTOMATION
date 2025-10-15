@@ -22,7 +22,7 @@ def formatar_moeda_br(valor):
     s = s.replace(',', 'X').replace('.', ',').replace('X', '.')
     return s
 
-def listar_todos_videos(url_canal, palavra_chave, mes=None, ano=None, valorPorMinuto=0):
+def listar_todos_videos(url_canal, palavra_chave, mes=None, ano=None, valorPorMinuto=0, max_results=None):
     # Configuração inicial para listar vídeos
     ydl_opts = {
         'quiet': True,
@@ -38,14 +38,50 @@ def listar_todos_videos(url_canal, palavra_chave, mes=None, ano=None, valorPorMi
             print("🔍 Extraindo lista de vídeos do canal...")
             playlist = ydl.extract_info(url_canal, download=False)
             
-            # Filtra os vídeos que queremos
-            videos_filtrados = [
-                video for video in playlist.get('entries', [])
-                if video and palavra_chave in video.get('title', '')
-            ]
-            
+            # Filtra os vídeos que querem pela palavra-chave
+            entries = [e for e in playlist.get('entries', []) if e]
+            videos_filtrados = [v for v in entries if palavra_chave.lower() in v.get('title', '').lower()]
+
             print(f"📺 Canal: {playlist.get('uploader', 'Canal desconhecido')}")
-            print(f"🎯 Vídeos encontrados: {len(videos_filtrados)}")
+            print(f"🔎 Entradas com palavra-chave: {len(videos_filtrados)}")
+
+            # Tenta filtrar cedo por upload_date disponível nas entradas planas
+            videos_with_date = []
+            videos_without_date = []
+            for v in videos_filtrados:
+                if v.get('upload_date'):
+                    videos_with_date.append(v)
+                else:
+                    videos_without_date.append(v)
+
+            videos_to_check = videos_filtrados
+            # Se houver entradas planas com upload_date, aplicamos o filtro de mês/ano nelas
+            early_matches = []
+            if (mes or ano) and videos_with_date:
+                for v in videos_with_date:
+                    try:
+                        ud = v.get('upload_date')
+                        y = int(ud[0:4])
+                        m = int(ud[4:6])
+                    except Exception:
+                        continue
+                    if mes and m != mes:
+                        continue
+                    if ano and y != ano:
+                        continue
+                    early_matches.append(v)
+
+                if early_matches:
+                    # Só vamos detalhar as early_matches — evita extrair detalhes para os outros
+                    videos_to_check = early_matches
+                    if max_results:
+                        videos_to_check = early_matches[:max_results]
+                    print(f"⚡ Usando filtro antecipado por data: {len(videos_to_check)} entradas serão processadas (early matches)")
+                else:
+                    # nenhuma entrada plana bateu no filtro, mas ainda podemos ter matches apenas acessando detalhes
+                    print("⚠️ Nenhuma data disponível nas entradas planas que atenda ao filtro; será necessário extrair detalhes para confirmar")
+            else:
+                print("" )
             print("=" * 100)
             
             # Segundo passo: obter detalhes de cada vídeo
@@ -56,8 +92,12 @@ def listar_todos_videos(url_canal, palavra_chave, mes=None, ano=None, valorPorMi
                 'skip_download': True
             }
             
+####################################################################################################
+
+
             with yt_dlp.YoutubeDL(ydl_opts_detailed) as ydl_detailed:
-                for i, video in enumerate(videos_filtrados, 1):
+                results_count = 0
+                for i, video in enumerate(videos_to_check, 1):
                     try:
                         # Obtém informações detalhadas do vídeo
                         video_url = f"https://www.youtube.com/watch?v={video['id']}"
@@ -94,6 +134,12 @@ def listar_todos_videos(url_canal, palavra_chave, mes=None, ano=None, valorPorMi
                         if valorPorMinuto:
                             print(f"    💰 Custo estimado: R$ {formatar_moeda_br(custo)}")
 
+                        results_count += 1
+                        # se max_results foi definido, interrompe quando atingir
+                        if max_results and results_count >= max_results:
+                            print(f"⛔ Atingido max_results={max_results}. Encerrando processamento.")
+                            break
+
                     except Exception as e:
                         print(f"{i:3d}. [Erro ao obter detalhes] {video.get('title', 'Sem título')}")
             
@@ -103,6 +149,13 @@ def listar_todos_videos(url_canal, palavra_chave, mes=None, ano=None, valorPorMi
     except Exception as e:
         print(f"❌ Erro: {e}")
         print("💡 Verifique se a URL do canal está correta")
+
+
+
+####################################################################################################
+
+
+
 
 if __name__ == "__main__":
     # Canal padrão sempre @mundogv
@@ -114,6 +167,6 @@ if __name__ == "__main__":
     valorPorMinuto = valorPorHora/60  # Divide o valor por minuto para obter o valor por hora
     url = "https://www.youtube.com/@mundogv/streams"
     print(f"📺 Listando vídeos do canal: {url}")
-    # Passa os filtros: palavra_chave, mês, ano e valor por minuto
-    listar_todos_videos(url, palavra_chave, mes, ano, valorPorMinuto)
+    # Passa os filtros: palavra_chave, mês, ano, valor por minuto e max_results
+    listar_todos_videos(url, palavra_chave, mes, ano, valorPorMinuto, max_results=5)
 
