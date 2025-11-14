@@ -95,7 +95,3 @@ python processar_pesquisa.py
 ```
 
 O script irá carregar as configurações, buscar os dados na API do YouTube e imprimir o relatório detalhado e o resumo final no seu terminal.
-
----
-
-*Este projeto foi desenvolvido com o auxílio do Gemini Code Assist.*
