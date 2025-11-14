@@ -80,9 +80,9 @@ Essa automação economiza horas de trabalho manual e garante que os valores cob
     Abra o arquivo `config.json` e edite os valores conforme sua necessidade:
     ```json
     {
-      "valor_por_hora": (valor em reais),
-      "ano_alvo": 2025,
-      "mes_alvo": 10
+      "valor_por_hora": 99999999,
+      "ano_alvo": 999999999,
+      "mes_alvo": 12
     }
     ```
 
