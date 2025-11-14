@@ -1,5 +1,14 @@
-venv/
-.env
+# Arquivo de configuração com dados sensíveis
+config.json
+
+# Ambiente virtual
+.venv/
+.venv311/
+
+# Cache do Python
 __pycache__/
 *.pyc
-.DS_Store
+
+# Arquivos de IDE
+.vscode/
+.idea/
